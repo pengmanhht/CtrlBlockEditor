@@ -83,9 +83,17 @@ class ModelBlocks:
 
     
 def parse_control_file(file_path: str) -> ModelBlocks:
-    model_blocks = ModelBlocks()
+    
     with open(file_path, "r") as file:
         lines = file.readlines()
+    
+    model_blocks = _parse_lines(lines)
+    
+    return model_blocks
+
+
+def _parse_lines(lines):
+    model_blocks = ModelBlocks()
     
     current_block = None
     block_content = []
@@ -154,3 +162,22 @@ def replay_changes(model_blocks: ModelBlocks, change_log_file: str):
     print("All changes replayed successfully.")
     
     return updated_model_blocks
+
+
+def pharmpy_to_blocks(model: Model) -> ModelBlocks:
+    # NOTE: we assume model has been converted to nonmem format here
+    model_code = model.code
+    lines = model_code.splitlines(keepsends=True)
+    model_blocks = _parse_lines(lines)
+    
+    return model_blocks
+
+
+def blocks_to_pharmpy(model_blocks: ModelBlocks, parent_model: Model, path: str = None) -> Model:
+    model_code = model_blocks.render()
+    model = parent_model.parse_from_string(model_code)
+    
+    if path:
+        model_blocks.save_change_log(path)
+        
+    return model
