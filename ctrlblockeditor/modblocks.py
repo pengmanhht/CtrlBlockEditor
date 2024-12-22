@@ -1,11 +1,23 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional 
+from typing import Dict, List
 import ipywidgets as widgets
 from IPython.display import display, clear_output
+import json
+from datetime import datetime 
+
+
+@dataclass
+class ChangeLogEntry:
+    timestamp: str
+    block_name: str
+    orginal_content: List[str]
+    updated_content: List[str]
+
 
 @dataclass
 class ModelBlocks:
     blocks: Dict[str, List[List[str]]] = field(default_factory=dict)
+    change_log: List[ChangeLogEntry] = field(default_factory=list)
     
     def add_block(self, block_name: str, block_content: List[str]):
         if block_name not in self.blocks:
@@ -14,10 +26,26 @@ class ModelBlocks:
     
     def update_block(self, block_name: str, new_content: List[str]):
         if block_name in self.blocks:
-            self.blocks[block_name] = new_content
+            orig_content = self.blocks[block_name]
+            self.blocks[block_name] = [new_content] #[new_content]??
+            self.log_change(block_name, orig_content, new_content)
         else:
             raise ValueError(f"Block '{block_name}' not found in model.")
     
+    def log_change(self, block_name: str, original_content: List[str], updated_content: List[str]):
+        entry = ChangeLogEntry(
+            timestamp=datetime.now().isoformat(),
+            block_name=block_name,
+            orginal_content=original_content,
+            updated_content=updated_content
+        )
+        self.change_log.append(entry)
+        
+    def save_change_log(self, file_path: str):
+        with open(file_path, "w") as file:
+            json.dump([entry.__dict__ for entry in self.change_log], file, indent=4)
+        print(f"Change log saved to '{file_path}'.")
+            
     def render(self) -> str:
         sections = []
         for block_name, contents in self.blocks.items():
@@ -89,3 +117,13 @@ def save_control_file(model_blocks: ModelBlocks, file_path: str):
     with open(file_path, "w") as file:
         file.write(model_blocks.render())
     print(f"Control file saved to '{file_path}'.")
+
+
+def replay_changes(model_blocks: ModelBlocks, change_log_file: str):
+    with open(change_log_file, "r") as file:
+        change_log = json.load(file)
+    
+    for entry in change_log:
+        model_blocks.update_block(entry["block_name"], entry["updated_content"])
+        print(f"Block '{entry['block_name']}' updated at {entry['timestamp']}")
+    print("All changes replayed successfully.")
