@@ -28,7 +28,7 @@ class ModelBlocks:
     def update_block(self, block_name: str, new_content: List[str]):
         if block_name in self.blocks:
             orig_content = self.blocks[block_name]
-            self.blocks[block_name] = [new_content] #[new_content]??
+            self.blocks[block_name] = [new_content]
             self.log_change(block_name, orig_content, new_content)
         else:
             raise ValueError(f"Block '{block_name}' not found in model.")
@@ -115,16 +115,26 @@ def _parse_lines(lines):
 
 def widget_edit_block(block_content: List[str], save_callback=None):
     flattened_block_content = [item for sublist in block_content for item in sublist]
-    textarea = widgets.Textarea(
-        value="".join(flattened_block_content),
-        placeholder="Edit block content here...",
-        layout=widgets.Layout(width="100%", height="100px")
+    original_text = "".join(flattened_block_content)
+    
+    orig_textarea = widgets.Textarea(
+        value=original_text,
+        placeholder="Original block content...",
+        layout=widgets.Layout(width="48%", height="150px", margin="0 1% 0 0"),
+        disabled=True
     )
+    
+    edit_textarea = widgets.Textarea(
+        value=original_text,
+        placeholder="Edit block content here...",
+        layout=widgets.Layout(width="48%", height="150px", margin="0 0 0 1%")
+    )
+    
     save_button = widgets.Button(description="Save", button_style="success")
     output = widgets.Output()
     
     def on_save_clicked(_):
-        updated_content = textarea.value
+        updated_content = edit_textarea.value
         with output:
             clear_output(wait=True)
             print("Changes saved!")
@@ -132,8 +142,12 @@ def widget_edit_block(block_content: List[str], save_callback=None):
             save_callback(updated_content)
     
     save_button.on_click(on_save_clicked)
-    display(widgets.VBox([textarea, save_button, output]))
-    
+    display(widgets.VBox([
+        widgets.HBox([orig_textarea, edit_textarea]),
+        save_button, 
+        output
+        ]))
+
 
 def edit_model_block(model_blocks: ModelBlocks, block_name: str):
     if block_name not in model_blocks.blocks:
