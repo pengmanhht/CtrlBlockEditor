@@ -149,18 +149,21 @@ def widget_edit_block(block_content: List[str], save_callback=None):
         ]))
 
 
-def edit_model_block(model_blocks: ModelBlocks, block_name: str):
-    if block_name not in model_blocks.blocks:
-        raise ValueError(f"Block '{block_name}' not found in model.")
-    
+def edit_model_blocks(model_blocks: ModelBlocks, block_names: List[str]):
     updated_model_blocks = model_blocks.copy()
-    block_content = model_blocks.blocks[block_name]
     
-    def save_callback(updated_content):
-        updated_model_blocks.update_block(block_name, updated_content.splitlines(keepends=True))
-        print(f"Block '{block_name}' updated.")
+    for block_name in block_names:
+        if block_name not in model_blocks.blocks:
+            raise ValueError(f"Block '{block_name}' not found in model.")
+        
+        block_content = model_blocks.blocks[block_name]
+        
+        def save_callback(updated_content, block_name=block_name):
+            updated_model_blocks.update_block(block_name, updated_content.splitlines(keepends=True))
+            print(f"Block '{block_name}' updated.")
+        
+        widget_edit_block(block_content, save_callback=save_callback)
     
-    widget_edit_block(block_content, save_callback=save_callback)
     return updated_model_blocks
 
 
