@@ -4,7 +4,8 @@ import ipywidgets as widgets
 from IPython.display import display, clear_output
 import json
 from datetime import datetime 
-
+from pharmpy.model import Model
+from pathlib import Path
 
 @dataclass
 class ChangeLogEntry:
@@ -41,10 +42,27 @@ class ModelBlocks:
         )
         self.change_log.append(entry)
         
-    def save_change_log(self, file_path: str):
-        with open(file_path, "w") as file:
+    def save_change_log(self, name, path: str):
+        path = Path(path)
+        self._check_path(path)
+        file_path = path / f"{name}_log.json"
+        
+        with file_path.open("w", encoding="utf-8") as file:
             json.dump([entry.__dict__ for entry in self.change_log], file, indent=4)
         print(f"Change log saved to '{file_path}'.")
+        
+    def save_model(self, name: str, path: str = "."):
+        path = Path(path)
+        self._check_path(path)
+        file_path = path / f"{name}.ctl"
+        
+        with file_path.open("w", encoding="utf-8") as file:
+            file.write(self.render())
+        print(f"Model saved to '{file_path}'.")
+        
+    def save(self, name: str, path: str = "."):
+        self.save_model(name, path)
+        self.save_change_log(name, path)
             
     def render(self) -> str:
         sections = []
@@ -60,7 +78,10 @@ class ModelBlocks:
             change_log=list(self.change_log)
         )
     
+    def _check_path(self, path: Path):
+        path.mkdir(parents=True, exist_ok=True)
 
+    
 def parse_control_file(file_path: str) -> ModelBlocks:
     model_blocks = ModelBlocks()
     with open(file_path, "r") as file:
@@ -119,12 +140,6 @@ def edit_model_block(model_blocks: ModelBlocks, block_name: str):
     
     widget_edit_block(block_content, save_callback=save_callback)
     return updated_model_blocks
-    
-    
-def save_control_file(model_blocks: ModelBlocks, file_path: str):
-    with open(file_path, "w") as file:
-        file.write(model_blocks.render())
-    print(f"Control file saved to '{file_path}'.")
 
 
 def replay_changes(model_blocks: ModelBlocks, change_log_file: str):
