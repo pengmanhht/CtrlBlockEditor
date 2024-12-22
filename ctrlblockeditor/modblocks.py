@@ -54,6 +54,12 @@ class ModelBlocks:
             sections.append("\n")
         return "".join(sections).strip()
     
+    def copy(self):
+        return ModelBlocks(
+            blocks={key: [list(content) for content in value] for key, value in self.blocks.items()},
+            change_log=list(self.change_log)
+        )
+    
 
 def parse_control_file(file_path: str) -> ModelBlocks:
     model_blocks = ModelBlocks()
@@ -104,13 +110,15 @@ def edit_model_block(model_blocks: ModelBlocks, block_name: str):
     if block_name not in model_blocks.blocks:
         raise ValueError(f"Block '{block_name}' not found in model.")
     
+    updated_model_blocks = model_blocks.copy()
     block_content = model_blocks.blocks[block_name]
     
     def save_callback(updated_content):
-        model_blocks.update_block(block_name, updated_content.splitlines(keepends=True))
+        updated_model_blocks.update_block(block_name, updated_content.splitlines(keepends=True))
         print(f"Block '{block_name}' updated.")
     
     widget_edit_block(block_content, save_callback=save_callback)
+    return updated_model_blocks
     
     
 def save_control_file(model_blocks: ModelBlocks, file_path: str):
@@ -120,10 +128,14 @@ def save_control_file(model_blocks: ModelBlocks, file_path: str):
 
 
 def replay_changes(model_blocks: ModelBlocks, change_log_file: str):
+    updated_model_blocks = model_blocks.copy()
+    
     with open(change_log_file, "r") as file:
         change_log = json.load(file)
     
     for entry in change_log:
-        model_blocks.update_block(entry["block_name"], entry["updated_content"])
+        updated_model_blocks.update_block(entry["block_name"], entry["updated_content"])
         print(f"Block '{entry['block_name']}' updated at {entry['timestamp']}")
     print("All changes replayed successfully.")
+    
+    return updated_model_blocks
