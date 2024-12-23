@@ -184,7 +184,7 @@ def replay_changes(model_blocks: ModelBlocks, change_log_file: str):
 def pharmpy_to_blocks(model: Model) -> ModelBlocks:
     # NOTE: we assume model has been converted to nonmem format here
     model_code = model.code
-    lines = model_code.splitlines(keepsends=True)
+    lines = model_code.splitlines(keepends=True)
     model_blocks = _parse_lines(lines)
     
     return model_blocks
@@ -192,7 +192,11 @@ def pharmpy_to_blocks(model: Model) -> ModelBlocks:
 
 def blocks_to_pharmpy(model_blocks: ModelBlocks, parent_model: Model, path: str = None) -> Model:
     model_code = model_blocks.render()
-    model = parent_model.parse_from_string(model_code)
+    model = parent_model.parse_model_from_string(model_code)
+    model = model.replace(
+        dataset=parent_model.dataset,
+        datainfo=parent_model.datainfo,
+    )
     
     if path:
         model_blocks.save_change_log(path)
